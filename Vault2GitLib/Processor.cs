@@ -5,7 +5,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
-using VaultClientIntegrationLib;
+using VaultCmdLineClient;
 using VaultClientOperationsLib;
 using VaultLib;
 using System.Xml.XPath;

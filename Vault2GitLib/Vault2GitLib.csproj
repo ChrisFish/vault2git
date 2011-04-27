@@ -52,8 +52,10 @@
     <CodeAnalysisRuleSet>AllRules.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="DragnetLib, Version=4.0.6.15954, Culture=neutral, PublicKeyToken=14a8075ce88af4e0, processorArchitecture=MSIL" />
-    <Reference Include="SGDiff, Version=4.0.6.15954, Culture=neutral, PublicKeyToken=f3bc199665d82028, processorArchitecture=MSIL" />
+    <Reference Include="SGDiff, Version=3.1.9.3798, Culture=neutral, PublicKeyToken=f3bc199665d82028">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>libs\VaultClientAPI_3_1_9\SGDiff.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core">
       <RequiredTargetFramework>3.5</RequiredTargetFramework>
@@ -66,24 +68,26 @@
     </Reference>
     <Reference Include="System.Data" />
     <Reference Include="System.Xml" />
-    <Reference Include="VaultClientIntegrationLib, Version=4.0.6.15954, Culture=neutral, PublicKeyToken=500623c275bd78a9, processorArchitecture=MSIL" />
-    <Reference Include="VaultClientNetLib, Version=4.0.6.15954, Culture=neutral, PublicKeyToken=e372e94840f8a4d3, processorArchitecture=MSIL" />
-    <Reference Include="VaultClientOperationsLib, Version=4.0.6.15954, Culture=neutral, PublicKeyToken=e372e94840f8a4d3, processorArchitecture=MSIL" />
-    <Reference Include="VaultLib, Version=4.0.6.15954, Culture=neutral, PublicKeyToken=a74d7badb9387c36, processorArchitecture=MSIL" />
-    <Reference Include="VCDiff, Version=4.0.6.15954, Culture=neutral, PublicKeyToken=4f75799f06837886, processorArchitecture=MSIL" />
+    <Reference Include="VaultClientNetLib, Version=3.1.9.3798, Culture=neutral, PublicKeyToken=e372e94840f8a4d3">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>libs\VaultClientAPI_3_1_9\VaultClientNetLib.dll</HintPath>
+    </Reference>
+    <Reference Include="VaultClientOperationsLib, Version=3.1.9.3798, Culture=neutral, PublicKeyToken=e372e94840f8a4d3">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>libs\VaultClientAPI_3_1_9\VaultClientOperationsLib.dll</HintPath>
+    </Reference>
+    <Reference Include="VaultLib, Version=3.1.9.3798, Culture=neutral, PublicKeyToken=a74d7badb9387c36">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>libs\VaultClientAPI_3_1_9\VaultLib.dll</HintPath>
+    </Reference>
+    <Reference Include="VCDiff, Version=3.1.9.3798, Culture=neutral, PublicKeyToken=4f75799f06837886">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>libs\VaultClientAPI_3_1_9\VCDiff.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Processor.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-  </ItemGroup>
-  <ItemGroup>
-    <Content Include="libs\VaultClientAPI_4_0_6_15954\DragnetLib.dll" />
-    <Content Include="libs\VaultClientAPI_4_0_6_15954\SGDiff.dll" />
-    <Content Include="libs\VaultClientAPI_4_0_6_15954\VaultClientIntegrationLib.dll" />
-    <Content Include="libs\VaultClientAPI_4_0_6_15954\VaultClientNetLib.dll" />
-    <Content Include="libs\VaultClientAPI_4_0_6_15954\VaultClientOperationsLib.dll" />
-    <Content Include="libs\VaultClientAPI_4_0_6_15954\VaultLib.dll" />
-    <Content Include="libs\VaultClientAPI_4_0_6_15954\VCDiff.dll" />
   </ItemGroup>
   <ItemGroup>
     <BootstrapperPackage Include="Microsoft.Net.Client.3.5">
@@ -101,6 +105,19 @@
       <ProductName>Windows Installer 3.1</ProductName>
       <Install>true</Install>
     </BootstrapperPackage>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="libs\VaultClientAPI_3_1_9\SGDiff.dll" />
+    <Content Include="libs\VaultClientAPI_3_1_9\VaultClientNetLib.dll" />
+    <Content Include="libs\VaultClientAPI_3_1_9\VaultClientOperationsLib.dll" />
+    <Content Include="libs\VaultClientAPI_3_1_9\VaultLib.dll" />
+    <Content Include="libs\VaultClientAPI_3_1_9\VCDiff.dll" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\VaultCmdLineClient\VaultCmdLineClient.csproj">
+      <Project>{FC702C26-7D5C-4891-8FB4-00870A2B3972}</Project>
+      <Name>VaultCmdLineClient</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
