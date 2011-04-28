@@ -1,5 +1,11 @@
 vault2git
 
+***************
+IMPORTANT NOTE:
+This is a modified version of vault2git that was designed to work specifically with Vault 3.1.9
+There was significant differences between this version of the Vault Client API and version 4.0
+***************
+
 Purpose
 
 	Convert history from Vault repo into Git repo
