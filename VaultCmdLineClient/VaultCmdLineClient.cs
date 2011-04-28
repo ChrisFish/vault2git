@@ -43,7 +43,7 @@ using VaultLib;
 namespace VaultCmdLineClient
 {
 
-	class VaultCmdLineClient
+	public class VaultCmdLineClient
 	{
 		const string SESSION_FILENAME = "vault_cmdline_client_session.txt";
 
@@ -200,7 +200,7 @@ namespace VaultCmdLineClient
 		}
 
 
-		void Login(bool bAllowAuto, bool bSaveSession)
+		public void Login(bool bAllowAuto, bool bSaveSession)
 		{
 			bool bResult = false;
 
@@ -354,11 +354,11 @@ namespace VaultCmdLineClient
 				throw new UsageException("Please verify that you have specified -user, -password, -host, and -repository.");
 			}
 		}
-		void Login()
+		public void Login()
 		{
 			Login(true, false);
 		}
-		void Logout(bool bForceLogout)
+		public void Logout(bool bForceLogout)
 		{
 			if ( (_ci != null) && 
 				((bForceLogout == true) || (_args.InBatchMode == false))
@@ -525,6 +525,32 @@ namespace VaultCmdLineClient
 				}
 			}
 		}
+
+        /// <summary>
+        /// Vault2Git addition method
+        /// </summary>
+        public void RemoveWorkingFolder(string repositoryFolderPath)
+        {
+            ValidateReposPath(repositoryFolderPath);
+            _ci.TreeCache.RemoveWorkingFolder(repositoryFolderPath);
+        }
+
+        /// <summary>
+        /// Vault2Git addition method
+        /// </summary>
+        public SortedList GetWorkingFolderAssignments()
+        {
+            SortedList list = new SortedList();
+            string[] fullPaths = null;
+            string[] diskPaths = null;
+
+            _ci.TreeCache.GetWorkingFolderAssignments(ref fullPaths, ref diskPaths);
+            for (int i = 0; i < fullPaths.Length; i++)
+            {
+                list[fullPaths[i]] = diskPaths[i];
+            }
+            return list;
+        }
 
 		void WriteListWorkingFolders()
 		{
@@ -2995,7 +3021,7 @@ namespace VaultCmdLineClient
 			return (wf != null);
 		}
 
-		void SetWorkingFolder(string uncheckedRepospath, string strDiskFolder, bool bCreateDiskPath)
+		public void SetWorkingFolder(string uncheckedRepospath, string strDiskFolder, bool bCreateDiskPath)
 		{
 			string strReposFolder = RepositoryPath.NormalizeFolder(uncheckedRepospath);
 			ValidateReposPath(strReposFolder);
@@ -3232,13 +3258,25 @@ namespace VaultCmdLineClient
 			if (_args.MakeBackup != BackupOption.usedefault)
 			{
 				_ci.WorkingFolderOptions.MakeBackups = saveMakeBackupOption;
-			} 
-
+			}
 
 			return bSuccess;
 		}
 
-		bool ProcessCommandGetVersion(int version, string strReposItem, string strDestFolder)
+        /// <summary>
+        /// Vault2Git addition method
+        /// </summary>
+        public VaultTxDetailHistoryItem[] ProcessCommandTxDetail(long nTxID)
+        {
+            VaultTxDetailHistoryItem[] vtdhiItems = null;
+            string strChangeSetComment = null;
+
+            _ci.Connection.GetTxDetail(_ci.ActiveRepositoryID, nTxID, ref strChangeSetComment, ref vtdhiItems);
+
+            return vtdhiItems;
+        }
+
+		public bool ProcessCommandGetVersion(int version, string strReposItem, string strDestFolder)
 		{
 			bool bResetCloaks = false;
 			VaultNameValueCollection cloaks = null;
@@ -3354,6 +3392,9 @@ namespace VaultCmdLineClient
 			{
 				VaultClientFolder vcFolder = (VaultClientFolder)treeObjectToRetrieve;
 				vcFolder.Version = version;
+
+                //Vault2Git addition setting
+                _ci.WorkingFolderOptions.OverrideNativeEOL = VaultEOLForm.None;
 
 				VaultFolderDelta vfDelta = new VaultFolderDelta();
 				try
@@ -3670,6 +3711,33 @@ namespace VaultCmdLineClient
 			return bSuccess;
 		}
 
+        /// <summary>
+        /// Vault2Git addition method
+        /// </summary>
+        public VaultTxHistoryItem[] ProcessCommandVersionHistory(string strReposPath, DateTime beginDate, DateTime endDate, int beginVersion, int rowLimit)
+        {
+            VaultClientTreeObject vctreeobj = null;
+            vctreeobj = _ci.TreeCache.Repository.Root.FindTreeObjectRecursive(strReposPath);
+            if (vctreeobj == null)
+            {
+                throw new Exception(string.Format("Folder {0} does not exist. (Note that VersionHistory can only be used on folders, not on files.)", strReposPath));
+            }
+
+            int rowsRetrieved = 0;
+            string strQryToken = null;
+            VaultTxHistoryItem[] histitems = new VaultTxHistoryItem[0];
+
+            _ci.Connection.VersionHistoryBegin(rowLimit, _ci.ActiveRepositoryID, vctreeobj.ID, beginDate,
+                endDate, beginVersion, ref rowsRetrieved, ref strQryToken);
+            if (rowsRetrieved > 0)
+            {
+                _ci.Connection.VersionHistoryFetch(strQryToken, 0, rowsRetrieved - 1, ref histitems);
+            }
+            _ci.Connection.VersionHistoryEnd(strQryToken);
+
+            return histitems;
+        }
+
 		bool ProcessCommandVersionHistory(string strReposPath)
 		{
 			bool bSuccess = true;
@@ -3682,7 +3750,6 @@ namespace VaultCmdLineClient
 			{
 				throw new Exception(string.Format("Folder {0} does not exist.  (Note that versionhistory can only be used on folders, not on files.)", strReposPath));
 			}
-			
 			
 			int rowsRetrieved = 0;
 			string strQryToken = null;

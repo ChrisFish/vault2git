@@ -90,7 +90,7 @@ namespace Vault2Git.CLI
         //[STAThread]
         static void Main(string[] args)
         {
-            Console.WriteLine("Vault2Git -- converting history from Vault repositories to Git");
+            Console.WriteLine("Vault2Git -- converting history from Vault repositories to Git");            
 
             //get configuration for branches
             var paths = ConfigurationManager.AppSettings["Convertor.Paths"];
@@ -129,6 +129,8 @@ namespace Vault2Git.CLI
                                     SkipEmptyCommits = param.SkipEmptyCommits
                                 };
 
+            //Required setup for Vault CLI -> Lib conversion!
+            processor.Setup(Console.Out);
 
             processor.Pull
                 (

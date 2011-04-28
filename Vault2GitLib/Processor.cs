@@ -16,6 +16,60 @@ namespace Vault2Git.Lib
     public class Processor
     {
         /// <summary>
+        /// A method to make the VaultCmdLineClient happy.
+        /// Should be passed in Console.Out (or something) from CLI.
+        /// </summary>
+        public void Setup(TextWriter tw)
+        {
+            Args args = new VaultCmdLineClient.Args();
+
+            //Login options (USE HTTPS FOR SSL)
+
+            /*
+                ServerOperations.client.LoginOptions.URL = string.Format("https://{0}/VaultService", this.VaultServer);
+                ServerOperations.client.LoginOptions.User = this.VaultUser;
+                ServerOperations.client.LoginOptions.Password = this.VaultPassword;
+                ServerOperations.client.LoginOptions.Repository = this.VaultRepository;
+                ServerOperations.Login();
+                ServerOperations.client.MakeBackups = false;
+                ServerOperations.client.AutoCommit = false;
+                ServerOperations.client.Verbose = true;
+            */
+
+            //args.RawUrl = string.Format("https://{0}/VaultService", this.VaultServer);
+            args.Host = this.VaultServer;
+            args.SSL = true; //TODO: SETUP APP CONFIG FOR THIS
+            args.User = this.VaultUser;
+            args.Password = this.VaultPassword;
+            args.Repository = this.VaultRepository;
+            args.MakeBackup = BackupOption.no;
+            args.AutoCommit = false;
+            args.Verbose = true;
+
+            //Get options
+
+            /*
+             	MakeWritable = MakeWritableType.MakeAllFilesWritable,
+			    Merge = MergeType.OverwriteWorkingCopy,
+			    OverrideEOL = VaultEOL.None,
+			//remove working copy does not work -- bug http://support.sourcegear.com/viewtopic.php?f=5&t=11145
+			    PerformDeletions = PerformDeletionsType.RemoveWorkingCopy,
+			    SetFileTime = SetFileTimeType.Current,
+			    Recursive = true
+            */
+
+            args.MakeWritable = MakeWritableType.MakeAllFilesWritable;
+            args.Merge = MergeType.OverwriteWorkingCopy;
+            //OverrideEOL is set in the VaultCmdLineClient -> performGetVersion
+            args.PerformDeletions = PerformDeletionsType.RemoveWorkingCopy;
+            args.SetFileTime = SetFileTimeType.Current;
+            args.Recursive = true;
+
+            //Start up the client with the specified arguments and login.
+            VaultClient = new VaultCmdLineClient.VaultCmdLineClient(args, new XMLOutputWriter(tw));
+        }
+
+        /// <summary>
         /// path to git.exe
         /// </summary>
         public string GitCmd;
@@ -24,6 +78,11 @@ namespace Vault2Git.Lib
         /// path where conversion will take place. If it not already set as value working folder, it will be set automatically
         /// </summary>
         public string WorkingFolder;
+
+        /// <summary>
+        /// A global instance of the VaultCmdLineClient for use everywhere.
+        /// </summary>
+        public static VaultCmdLineClient.VaultCmdLineClient VaultClient;
 
         public string VaultServer;
         public string VaultUser;
@@ -279,18 +338,27 @@ namespace Vault2Git.Lib
         {
             var ticks = Environment.TickCount;
 
-            foreach (var i in ServerOperations.ProcessCommandVersionHistory(repoPath,
-                                                                            1,
-                                                                            VaultDateTime.Parse("2000-01-01"),
-                                                                            VaultDateTime.Parse("2020-01-01"),
-                                                                            0))
-                info.Add(i.Version, new VaultVersionInfo()
-                                        {
-                                            TrxId = i.TxID,
-                                            Comment = i.Comment,
-                                            Login = i.UserLogin,
-                                            TimeStamp = i.TxDate.GetDateTime()
-                                        });
+            foreach (var i in VaultClient.ProcessCommandVersionHistory(repoPath, new DateTime(2000,1,1), new DateTime(2020, 1,1), 1, 0))
+            {
+                info.Add(i.Version, new VaultVersionInfo(){
+                    TrxId = i.TxID,
+                    Comment = i.Comment,
+                    Login = i.UserLogin,
+                    TimeStamp = i.TxDate
+                });
+            }
+            //foreach (var i in ServerOperations.ProcessCommandVersionHistory(repoPath,
+            //                                                                1, //Begin version
+            //                                                                VaultDateTime.Parse("2000-01-01"),
+            //                                                                VaultDateTime.Parse("2020-01-01"),
+            //                                                                0)) //Row limit
+            //    info.Add(i.Version, new VaultVersionInfo()
+            //                            {
+            //                                TrxId = i.TxID,
+            //                                Comment = i.Comment,
+            //                                Login = i.UserLogin,
+            //                                TimeStamp = i.TxDate.GetDateTime()
+            //                            });
             return Environment.TickCount - ticks;
         }
 
@@ -298,19 +366,22 @@ namespace Vault2Git.Lib
         {
             var ticks = Environment.TickCount;
             //apply version to the repo folder
-            GetOperations.ProcessCommandGetVersion(
-                repoPath,
-                Convert.ToInt32(version),
-                new GetOptions()
-                    {
-                        MakeWritable = MakeWritableType.MakeAllFilesWritable,
-                        Merge = MergeType.OverwriteWorkingCopy,
-                        OverrideEOL = VaultEOL.None,
-                        //remove working copy does not work -- bug http://support.sourcegear.com/viewtopic.php?f=5&t=11145
-                        PerformDeletions = PerformDeletionsType.RemoveWorkingCopy,
-                        SetFileTime = SetFileTimeType.Current,
-                        Recursive = true
-                    });
+
+            VaultClient.ProcessCommandGetVersion((int)version, repoPath, this.WorkingFolder);
+
+            //GetOperations.ProcessCommandGetVersion(
+            //    repoPath,
+            //    Convert.ToInt32(version),
+            //    new GetOptions()
+            //        {
+            //            MakeWritable = MakeWritableType.MakeAllFilesWritable,
+            //            Merge = MergeType.OverwriteWorkingCopy,
+            //            OverrideEOL = VaultEOL.None,
+            //            //remove working copy does not work -- bug http://support.sourcegear.com/viewtopic.php?f=5&t=11145
+            //            PerformDeletions = PerformDeletionsType.RemoveWorkingCopy,
+            //            SetFileTime = SetFileTimeType.Current,
+            //            Recursive = true
+            //        });
 
             //now process deletions, moves, and renames (due to vault bug)
             var allowedRequests = new int[]
@@ -319,9 +390,9 @@ namespace Vault2Git.Lib
                                           12, //move
                                           15 //rename
                                       };
-            foreach (var item in ServerOperations.ProcessCommandTxDetail(txId).items
-                .Where(i => allowedRequests.Contains(i.RequestType)))
 
+            foreach (var item in VaultClient.ProcessCommandTxDetail(txId).Where(i => allowedRequests.Contains(i.RequestType)))
+            {
                 //delete file
                 //check if it is within current branch
                 if (item.ItemPath1.StartsWith(repoPath, StringComparison.CurrentCultureIgnoreCase))
@@ -333,6 +404,23 @@ namespace Vault2Git.Lib
                     if (Directory.Exists(pathToDelete))
                         Directory.Delete(pathToDelete, true);
                 }
+            }
+
+            //foreach (var item in ServerOperations.ProcessCommandTxDetail(txId).items
+            //    .Where(i => allowedRequests.Contains(i.RequestType)))
+            //{
+            //    //delete file
+            //    //check if it is within current branch
+            //    if (item.ItemPath1.StartsWith(repoPath, StringComparison.CurrentCultureIgnoreCase))
+            //    {
+            //        var pathToDelete = Path.Combine(this.WorkingFolder, item.ItemPath1.Substring(repoPath.Length + 1));
+            //        //Console.WriteLine("delete {0} => {1}", item.ItemPath1, pathToDelete);
+            //        if (File.Exists(pathToDelete))
+            //            File.Delete(pathToDelete);
+            //        if (Directory.Exists(pathToDelete))
+            //            Directory.Delete(pathToDelete, true);
+            //    }
+            //}
             return Environment.TickCount - ticks;
         }
 
@@ -461,7 +549,8 @@ namespace Vault2Git.Lib
         private int setVaultWorkingFolder(string repoPath)
         {
             var ticks = Environment.TickCount;
-            ServerOperations.SetWorkingFolder(repoPath, this.WorkingFolder, true);
+            VaultClient.SetWorkingFolder(repoPath, this.WorkingFolder, true);
+            //ServerOperations.SetWorkingFolder(repoPath, this.WorkingFolder, true);
             return Environment.TickCount - ticks;
         }
 
@@ -470,12 +559,20 @@ namespace Vault2Git.Lib
             var ticks = Environment.TickCount;
             //remove any assignment first
             //it is case sensitive, so we have to find how it is recorded first
-            var exPath = ServerOperations.GetWorkingFolderAssignments()
+
+            var exPath = VaultClient.GetWorkingFolderAssignments()
                 .Cast<DictionaryEntry>()
                 .Select(e => e.Key.ToString())
                 .Where(e => repoPath.Equals(e, StringComparison.OrdinalIgnoreCase)).FirstOrDefault();
-            if (null != exPath)
-                ServerOperations.RemoveWorkingFolder(exPath);
+            if (exPath != null)
+                VaultClient.RemoveWorkingFolder(exPath);
+
+            //var exPath = ServerOperations.GetWorkingFolderAssignments()
+            //    .Cast<DictionaryEntry>()
+            //    .Select(e => e.Key.ToString())
+            //    .Where(e => repoPath.Equals(e, StringComparison.OrdinalIgnoreCase)).FirstOrDefault();
+            //if (null != exPath)
+            //    ServerOperations.RemoveWorkingFolder(exPath);
             return Environment.TickCount - ticks;
         }
         private int runGitCommand(string cmd, string stdInput, out string[] stdOutput)
@@ -520,22 +617,25 @@ namespace Vault2Git.Lib
         private int vaultLogin()
         {
             var ticks = Environment.TickCount;
-            ServerOperations.client.LoginOptions.URL = string.Format("http://{0}/VaultService", this.VaultServer);
-            ServerOperations.client.LoginOptions.User = this.VaultUser;
-            ServerOperations.client.LoginOptions.Password = this.VaultPassword;
-            ServerOperations.client.LoginOptions.Repository = this.VaultRepository;
-            ServerOperations.Login();
-            ServerOperations.client.MakeBackups = false;
-            ServerOperations.client.AutoCommit = false;
-            ServerOperations.client.Verbose = true;
+            //ServerOperations.client.LoginOptions.URL = string.Format("http://{0}/VaultService", this.VaultServer);
+            //ServerOperations.client.LoginOptions.User = this.VaultUser;
+            //ServerOperations.client.LoginOptions.Password = this.VaultPassword;
+            //ServerOperations.client.LoginOptions.Repository = this.VaultRepository;
+            //ServerOperations.Login();
+            //ServerOperations.client.MakeBackups = false;
+            //ServerOperations.client.AutoCommit = false;
+            //ServerOperations.client.Verbose = true;
+
+            VaultClient.Login();
+
             return Environment.TickCount - ticks;
         }
         private int vaultLogout()
         {
             var ticks = Environment.TickCount;
-            ServerOperations.Logout();
+            //ServerOperations.Logout();
+            VaultClient.Logout(true);
             return Environment.TickCount - ticks;
         }
-
     }
 }
