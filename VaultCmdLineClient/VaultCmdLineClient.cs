@@ -40,7 +40,7 @@ using VaultClientOperationsLib;
 using VaultClientNetLib;
 using VaultLib;
 
-namespace VaultCmdLineClient
+namespace VaultCmdLineClientNs
 {
 
 	public class VaultCmdLineClient

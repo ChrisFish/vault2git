@@ -7,7 +7,7 @@ using VaultClientOperationsLib;
 using VaultLib;
 
 
-namespace VaultCmdLineClient
+namespace VaultCmdLineClientNs
 {
 
 	// NOTICE: if you add a new command, make sure you add help for it below in the Help class

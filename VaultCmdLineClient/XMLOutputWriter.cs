@@ -2,7 +2,7 @@ using System;
 using System.IO;
 
 
-namespace VaultCmdLineClient
+namespace VaultCmdLineClientNs
 {
 	// NOTE : we shouldn't be writing our own XML writer as
 	// NOTE : this will surely lead to nasty bugs that

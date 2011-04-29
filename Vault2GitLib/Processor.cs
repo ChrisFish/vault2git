@@ -10,7 +10,7 @@ using VaultClientOperationsLib;
 using VaultLib;
 using System.Xml.XPath;
 using System.Xml;
-using VaultCmdLineClient;
+using VaultCmdLineClientNs;
 
 namespace Vault2Git.Lib
 {
@@ -22,7 +22,7 @@ namespace Vault2Git.Lib
         /// </summary>
         public void Setup(TextWriter tw)
         {
-            Args args = new VaultCmdLineClient.Args();
+            Args args = new Args();
 
             //Login options (USE HTTPS FOR SSL)
 
@@ -67,7 +67,7 @@ namespace Vault2Git.Lib
             args.Recursive = true;
 
             //Start up the client with the specified arguments and login.
-            VaultClient = new VaultCmdLineClient.VaultCmdLineClient(args, new XMLOutputWriter(tw));
+            VaultClient = new VaultCmdLineClient(args, new XMLOutputWriter(tw));
         }
 
         /// <summary>
@@ -83,7 +83,13 @@ namespace Vault2Git.Lib
         /// <summary>
         /// A global instance of the VaultCmdLineClient for use everywhere.
         /// </summary>
-        public static VaultCmdLineClient.VaultCmdLineClient VaultClient;
+        public static VaultCmdLineClient VaultClient;
+
+        /// <summary>
+        /// A holder for used repo paths to pull labels for.
+        /// Helps avoid permissions issues.
+        /// </summary>
+        public static List<string> VaultRepoPaths = new List<string>();
 
         public string VaultServer;
         public string VaultUser;
@@ -166,6 +172,9 @@ namespace Vault2Git.Lib
 
                     var gitBranch = pair.Key;
                     var vaultRepoPath = pair.Value;
+
+                    if (!VaultRepoPaths.Contains(vaultRepoPath))
+                        VaultRepoPaths.Add(vaultRepoPath);
 
                     long currentGitVaultVersion = 0;
 
@@ -381,60 +390,77 @@ namespace Vault2Git.Lib
         /// <returns></returns>
         public bool CreateTagsFromLabels()
         {
-            vaultLogin();
-
-            // Search for all labels recursively
-            string repositoryFolderPath = "$";
-
-            long objId = VaultClient.FindVaultTreeObjectAtReposOrLocalPath(repositoryFolderPath).ID;
-            string qryToken;
-            int rowsRetMain;
-            int rowsRetRecur;
-
-            VaultLabelItemX[] labelItems;
-
-            VaultClient.BeginLabelQuery(repositoryFolderPath,
-                                                objId,
-                                                true, // get recursive
-                                                true, // get inherited
-                                                true, // get file items
-                                                true, // get folder items
-                                                0,    // no limit on results
-                                                out rowsRetMain,
-                                                out rowsRetRecur,
-                                                out qryToken);
-
-            VaultClient.GetLabelQueryItems_Recursive(qryToken,
-                                                        0,
-                                                        (int)rowsRetRecur,
-                                                        out labelItems);
-
             try
             {
-                int ticks = 0;
-            
-                foreach (VaultLabelItemX currItem in labelItems)
+                vaultLogin();
+                string qryToken = null;
+
+                try
                 {
-                    if (!_txidMappings.ContainsKey(currItem.TxID))
-                        continue;
-
-                    string gitCommitId = _txidMappings.Where(s => s.Key.Equals(currItem.TxID)).First().Value;
-
-                    if (gitCommitId != null && gitCommitId.Length > 0)
+                    // Search for all labels recursively
+                    foreach (string repositoryFolderPath in VaultRepoPaths)
                     {
-                        string gitLabelName = Regex.Replace(currItem.Label, "[\\W]", "_");
-                        ticks += gitAddTag(currItem.TxID + "_" + gitLabelName, gitCommitId, currItem.Comment);
+                        //string repositoryFolderPath = "$";
+
+                        long objId = VaultClient.FindVaultTreeObjectAtReposOrLocalPath(repositoryFolderPath).ID;
+                        qryToken = null;
+                        int rowsRetMain;
+                        int rowsRetRecur;
+
+                        VaultLabelItemX[] labelItems;
+
+                        VaultClient.BeginLabelQuery(repositoryFolderPath,
+                                                            objId,
+                                                            true, // get recursive
+                                                            true, // get inherited
+                                                            true, // get file items
+                                                            true, // get folder items
+                                                            0,    // no limit on results
+                                                            out rowsRetMain,
+                                                            out rowsRetRecur,
+                                                            out qryToken);
+
+                        VaultClient.GetLabelQueryItems_Recursive(qryToken,
+                                                                    0,
+                                                                    (int)rowsRetRecur,
+                                                                    out labelItems);
+
+
+                        int ticks = 0;
+
+                        foreach (VaultLabelItemX currItem in labelItems)
+                        {
+                            if (!_txidMappings.ContainsKey(currItem.TxID))
+                                continue;
+
+                            string gitCommitId = _txidMappings.Where(s => s.Key.Equals(currItem.TxID)).First().Value;
+
+                            if (gitCommitId != null && gitCommitId.Length > 0)
+                            {
+                                string gitLabelName = Regex.Replace(currItem.Label, "[\\W]", "_");
+                                ticks += gitAddTag(currItem.TxID + "_" + gitLabelName, gitCommitId, currItem.Comment);
+                            }
+                        }
+
+                        //add ticks for git tags
+                        if (null != Progress)
+                            Progress(ProgressSpecialVersionTags, ticks);
                     }
                 }
-                
-                //add ticks for git tags
-                if (null != Progress)
-                    Progress(ProgressSpecialVersionTags, ticks);
+                catch (Exception ex)
+                {
+                    //TODO: Swallow error?
+                    Console.WriteLine(ex);
+                }
+                finally
+                {
+                    //complete
+                    VaultClient.EndLabelQuery(qryToken);
+                }
             }
             finally
             {
                 //complete
-                VaultClient.EndLabelQuery(qryToken);
                 vaultLogout();
                 gitFinalize();
             }

@@ -3,7 +3,7 @@ using System.Collections;
 
 using VaultLib;
 
-namespace VaultCmdLineClient
+namespace VaultCmdLineClientNs
 {
 	public class GroupComparer : IComparer
 	{

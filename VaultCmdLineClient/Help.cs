@@ -6,7 +6,7 @@ using System.Reflection;
 
 
 
-namespace VaultCmdLineClient
+namespace VaultCmdLineClientNs
 {
 
 	public class CommandHelpEntry
