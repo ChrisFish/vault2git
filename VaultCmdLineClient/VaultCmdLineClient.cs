@@ -3788,8 +3788,39 @@ namespace VaultCmdLineClient
 			_xml.End();
 
 			return bSuccess;
-			
 		}
+
+        /// <summary>
+        /// Vault2Git addition method
+        /// </summary>
+        public void BeginLabelQuery(string strItemPath, long nObjID, bool bGetRecursive, bool bGetInherited, bool bGetFileItems, bool bGetFolderItems, int nRowLimit, out int nRowsRetrievedInherited, out int nRowsRetrievedRecursive, out string strQryToken)
+        {
+            _ci.Connection.BeginLabelQuery(_ci.ActiveRepositoryID, strItemPath, nObjID, bGetRecursive, bGetInherited, bGetFileItems, bGetFolderItems, nRowLimit, out nRowsRetrievedInherited, out nRowsRetrievedRecursive, out strQryToken);
+        }
+
+        /// <summary>
+        /// Vault2Git addition method
+        /// </summary>
+        public void EndLabelQuery(string qryToken)
+        {
+            _ci.Connection.EndLabelQuery(qryToken);
+        }
+
+        /// <summary>
+        /// Vault2Git addition method
+        /// </summary>
+        public void GetLabelQueryItems_Recursive(string strQryToken, int nBegin, int nEnd, out VaultLabelItemX[] vliItems)
+        {
+            _ci.Connection.GetLabelQueryItems_Recursive(strQryToken, nBegin, nEnd, out vliItems);
+        }
+
+        /// <summary>
+        /// Vault2Git addition method
+        /// </summary>
+        public VaultClientTreeObject FindVaultTreeObjectAtReposOrLocalPath(string repositoryFolderPath)
+        {
+            return _ci.TreeCache.Repository.Root.FindTreeObjectRecursive(repositoryFolderPath);
+        }
 
 		bool ProcessCommandHistory(string strReposPath)
 		{
