@@ -60,4 +60,5 @@ Vault labels convertion
 Last Updated: 2011-04-06
 Author: Andrey Nikiforov
 Contributor: Jevgeni Zelenkov ( github.com/jzelenkov )
+Contributor: James O'Cull ( github.com/jocull )
 Location: github.com/nikiforov/vault2git
