@@ -122,13 +122,16 @@ namespace Vault2Git.CLI
             _useConsole = param.UseConsole;
             _useCapsLock = param.UseCapsLock;
             _ignoreLabels = param.IgnoreLabels;
-
+            bool bUseSSL = true;
+            try { bUseSSL = Convert.ToBoolean(ConfigurationManager.AppSettings["Vault.UseSSL"]); }
+            catch { }
             var processor = new Vault2Git.Lib.Processor()
                                 {
                                     WorkingFolder = ConfigurationManager.AppSettings["Convertor.WorkingFolder"],
                                     GitCmd = ConfigurationManager.AppSettings["Convertor.GitCmd"],
                                     GitDomainName = ConfigurationManager.AppSettings["Git.DomainName"],
                                     VaultServer = ConfigurationManager.AppSettings["Vault.Server"],
+                                    VaultUseSSL = bUseSSL,
                                     VaultRepository = ConfigurationManager.AppSettings["Vault.Repo"],
                                     VaultUser = ConfigurationManager.AppSettings["Vault.User"],
                                     VaultPassword = ConfigurationManager.AppSettings["Vault.Password"],

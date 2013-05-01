@@ -27,6 +27,7 @@ namespace Vault2Git.Lib
         public string WorkingFolder;
 
         public string VaultServer;
+        public bool VaultUseSSL;
         public string VaultUser;
         public string VaultPassword;
         public string VaultRepository;
@@ -613,7 +614,14 @@ namespace Vault2Git.Lib
         private int vaultLogin()
         {
             var ticks = Environment.TickCount;
-            ServerOperations.client.LoginOptions.URL = string.Format("http://{0}/VaultService", this.VaultServer);
+            if (this.VaultUseSSL)
+            {
+                ServerOperations.client.LoginOptions.URL = string.Format("https://{0}/VaultService", this.VaultServer);
+            }
+            else
+            {
+                ServerOperations.client.LoginOptions.URL = string.Format("http://{0}/VaultService", this.VaultServer);
+            }
             ServerOperations.client.LoginOptions.User = this.VaultUser;
             ServerOperations.client.LoginOptions.Password = this.VaultPassword;
             ServerOperations.client.LoginOptions.Repository = this.VaultRepository;
